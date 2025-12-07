@@ -26,6 +26,10 @@
     "prepare": "husky",
     "test": "vitest run"
   },
+  "dependencies": {
+    "consola": "^3.4.2",
+    "picocolors": "^1.1.1"
+  },
   "devDependencies": {
     "@commitlint/cli": "^20.2.0",
     "@commitlint/config-conventional": "^20.2.0",

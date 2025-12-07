@@ -1,2 +1,4 @@
-# wxt-utils
-Utils for WXT extension development
+# WebExt Utils
+
+> Utils for browser extension development
+

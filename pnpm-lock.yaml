@@ -7,6 +7,13 @@ settings:
 importers:
 
   .:
+    dependencies:
+      consola:
+        specifier: ^3.4.2
+        version: 3.4.2
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
     devDependencies:
       '@commitlint/cli':
         specifier: ^20.2.0
