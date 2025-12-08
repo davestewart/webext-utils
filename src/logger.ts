@@ -2,17 +2,7 @@ import type { Logger } from 'wxt'
 import { inspect } from 'node:util'
 import pc from 'picocolors'
 
-const LOG_TYPES = [
-  'error',
-  'warn',
-  'log',
-  'info',
-  'debug',
-  'success',
-  'trace'
-] as const
-
-export const LOG_LEVEL = {
+const LOG_METHODS = {
   error: 0,
   warn: 1,
   log: 2,
@@ -22,12 +12,12 @@ export const LOG_LEVEL = {
   ready: 3,
   start: 3,
   debug: 4,
-  trace: 5
+  trace: 5,
 } as const
 
-export type LogLevel = keyof typeof LOG_LEVEL
+type LogMethod = keyof typeof LOG_METHODS
 
-export type LogType = typeof LOG_TYPES[number]
+export type LogLevel = 'error' | 'warn' | 'log' | 'info' | 'debug'
 
 function indent (str: string, spaces = 2): string {
   const indent = ' '.repeat(spaces)
@@ -38,44 +28,50 @@ function indent (str: string, spaces = 2): string {
     .join('\n')
 }
 
-function getLabelPrefix (label: string, method: LogType, logLevel: LogLevel): string {
-  const index = LOG_LEVEL[logLevel]
+function getPrefix (label: string, method: LogMethod, level: LogLevel): string {
+  const index = LOG_METHODS[level]
   if (index >= 4) {
+    const gutter = method === 'log' ? '  ' : ''
     const prefix = pc.dim(`[${label}]`)
-    return `${method === 'log' ? '  ' : ''}${prefix} `
+    return `${gutter}${prefix} `
   }
   return ''
 }
 
-function getFormattedArgs (args: unknown[], type: LogType): unknown[] {
+function getFormattedArgs (args: unknown[], method: LogMethod): unknown[] {
   const settings = { depth: null, colors: true, compact: false }
   return args.map(arg =>
     typeof arg === 'string'
       ? arg
-      : indent(inspect(arg, settings), type === 'log' ? 4 : 6)
+      : indent(inspect(arg, settings), method === 'log' ? 4 : 6),
   )
 }
 
 /**
- * Makes a copy of the WXT logger with a label and log level
+ * Clones WXT's logger with debug label prefix and formatted object output
  *
- * @param logger
- * @param label
- * @param level
+ * > **Note**: only `'debug'` log level will output an the additional `[label]` prefix
+ * >
+ * > As a developer, use `info` and `log` for top-level user feedback, and `debug` for when you want to output richer information
+ *
+ *
+ * @param logger  The WXT logger instance, i.e. `wxt.logger`
+ * @param label   The label to prefix `debug` level messages with
+ * @param level   An optional log level, over which, logs will be skipped, defaults to `'info'`
  */
 export function makeLogger (logger: Logger, label: string, level: LogLevel = 'info'): Logger {
-  function wrapLoggerMethod(logger: any, type: LogType): void {
-    const originalFn = logger[type].bind(logger)
-    logger[type] = (message: string, ...args: unknown[]) => {
-      const formattedArgs = getFormattedArgs(args, type)
-      const prefix = getLabelPrefix(label, type, level)
+  function wrapLoggerMethod (logger: any, method: LogMethod): void {
+    const originalFn = logger[method].bind(logger)
+    logger[method] = (message: string, ...args: unknown[]) => {
+      const formattedArgs = getFormattedArgs(args, method)
+      const prefix = getPrefix(label, method, level)
       originalFn(`${prefix}${message}`, ...formattedArgs)
     }
   }
 
-  const wrapper: Logger = (logger as any).create({ level })
-  LOG_TYPES.forEach(type => {
-    wrapLoggerMethod(wrapper, type)
+  const wrapper: Logger = (logger as any).create({ level: level })
+  Object.keys(LOG_METHODS).forEach(method => {
+    wrapLoggerMethod(wrapper, method as LogMethod)
   })
 
   return wrapper
