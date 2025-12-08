@@ -2,9 +2,9 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig({
   entry: ['./index.ts'],
-  sourcemap: true,
+  outDir: 'dist',
   format: ['esm'],
+  sourcemap: true,
   dts: true,
   clean: true,
-  outDir: 'dist',
 })

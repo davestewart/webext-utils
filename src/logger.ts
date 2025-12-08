@@ -1,8 +1,8 @@
+import type { Logger } from 'wxt'
 import { inspect } from 'node:util'
-import { createConsola, type ConsolaReporter, type LogObject } from 'consola'
 import pc from 'picocolors'
 
-const LOG_LEVEL_NAME = [
+const LOG_TYPES = [
   'error',
   'warn',
   'log',
@@ -26,9 +26,10 @@ export const LOG_LEVEL = {
 } as const
 
 export type LogLevel = keyof typeof LOG_LEVEL
-export type LogType = typeof LOG_LEVEL_NAME[number]
 
-function indent(str: string, spaces = 2): string {
+export type LogType = typeof LOG_TYPES[number]
+
+function indent (str: string, spaces = 2): string {
   const indent = ' '.repeat(spaces)
   return '\n' + str
     .trim()
@@ -37,7 +38,7 @@ function indent(str: string, spaces = 2): string {
     .join('\n')
 }
 
-function getLabelPrefix(label: string, method: LogType, logLevel: LogLevel): string {
+function getLabelPrefix (label: string, method: LogType, logLevel: LogLevel): string {
   const index = LOG_LEVEL[logLevel]
   if (index >= 4) {
     const prefix = pc.dim(`[${label}]`)
@@ -46,7 +47,7 @@ function getLabelPrefix(label: string, method: LogType, logLevel: LogLevel): str
   return ''
 }
 
-function getFormattedArgs(args: unknown[], type: LogType): unknown[] {
+function getFormattedArgs (args: unknown[], type: LogType): unknown[] {
   const settings = { depth: null, colors: true, compact: false }
   return args.map(arg =>
     typeof arg === 'string'
@@ -55,41 +56,27 @@ function getFormattedArgs(args: unknown[], type: LogType): unknown[] {
   )
 }
 
-// Custom reporter class
-class CustomReporter implements ConsolaReporter {
-  constructor(
-    private label: string = '',
-    private logLevel: LogLevel = 'info'
-  ) {}
-
-  log(logObj: LogObject): void {
-    const type = logObj.type as LogType
-    const message = logObj.args[0] as string
-    const args = logObj.args.slice(1)
-
-    const formattedArgs = getFormattedArgs(args, type)
-    const prefix = getLabelPrefix(this.label, type, this.logLevel)
-
-    // Use console methods directly with proper formatting
-    const method = type === 'success' ? 'log' : type
-    console[method](`${prefix}${message}`, ...formattedArgs)
-  }
-}
-
 /**
- * Create a new Consola logger with prefix and log level
+ * Makes a copy of the WXT logger with a label and log level
  *
+ * @param logger
  * @param label
- * @param logLevel
+ * @param level
  */
-export function createLogger(label = '', logLevel: LogLevel = 'info') {
-  const level = LOG_LEVEL[logLevel]
+export function makeLogger (logger: Logger, label: string, level: LogLevel = 'info'): Logger {
+  function wrapLoggerMethod(logger: any, type: LogType): void {
+    const originalFn = logger[type].bind(logger)
+    logger[type] = (message: string, ...args: unknown[]) => {
+      const formattedArgs = getFormattedArgs(args, type)
+      const prefix = getLabelPrefix(label, type, level)
+      originalFn(`${prefix}${message}`, ...formattedArgs)
+    }
+  }
 
-  return createConsola({
-    level,
-    reporters: [
-      new CustomReporter(label, logLevel)
-    ]
+  const wrapper: Logger = (logger as any).create({ level })
+  LOG_TYPES.forEach(type => {
+    wrapLoggerMethod(wrapper, type)
   })
-}
 
+  return wrapper
+}

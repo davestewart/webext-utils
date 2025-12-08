@@ -1,4 +1,4 @@
-# WebExt Utils
+# WXT Utils
 
-> Utils for browser extension development
+> Utils for WXT extension development
 
