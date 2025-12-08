@@ -1,6 +1,6 @@
 {
   "name": "@davestewart/wxt-utils",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Utils for WXT extension development",
   "author": "Dave Stewart",
   "type": "module",
